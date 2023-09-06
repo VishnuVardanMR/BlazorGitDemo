@@ -1,0 +1,45 @@
+name: Trigger auto deployment for blazorgitdemoapp
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ master ]
+    paths:
+    - '**'
+    - '.github/workflows/blazorgitdemoapp-AutoDeployTrigger-3d45d37f-518c-45e8-806e-4411a6296422.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.BLAZORGITDEMOAPP_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.BLAZORGITDEMOAPP_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.BLAZORGITDEMOAPP_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }} 
+          registryUrl: docker.io
+          registryUsername: ${{ secrets.BLAZORGITDEMOAPP_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.BLAZORGITDEMOAPP_REGISTRY_PASSWORD }}
+          containerAppName: blazorgitdemoapp
+          resourceGroup: GitHubDemo-RG
+          imageToBuild: vishnuvardanmr/blazorgitdemoapp:${{ github.sha }}
+          dockerfilePath: Dockerfile
+
+
