@@ -1,0 +1,86 @@
+on:
+  push:
+    branches:
+    - master
+env:
+  DOTNET_CORE_VERSION: 7.0.x
+  CONTAINER_REGISTRY_LOGIN_SERVER: webapplication120230928120827.azurecr.io
+  CONTAINER_APP_NAME: webapplication1-app-202309281205
+  CONTAINER_APP_RESOURCE_GROUP_NAME: DbyarRg
+  CONTAINER_APP_CONTAINER_NAME: webapplication1etttrurururyuryur
+jobs:
+  BlazorGitDemo.Client_buildImageAndDeploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v3
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
+    - name: Login to Azure container registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.CONTAINER_REGISTRY_LOGIN_SERVER }}
+        username: ${{ secrets.WebApplication120230928120827_USERNAME_F5E0 }}
+        password: ${{ secrets.WebApplication120230928120827_PASSWORD_F5E0 }}
+    - name: Build and push image to Azure container registry
+      run: dotnet publish BlazorGitDemo/Client/BlazorGitDemo.Client.csproj -c Release -r linux-x64 -p:PublishProfile=DefaultContainer -p:ContainerImageTag=${{ github.sha }} --no-self-contained -p:ContainerRegistry=${{ env.CONTAINER_REGISTRY_LOGIN_SERVER }} -bl
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: binlog
+        path: msbuild.binlog
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.webapplication1_app_202309281205_SPN }}
+    - name: Deploy to Azure container app
+      uses: azure/CLI@v1
+      with:
+        inlineScript: >-
+          az config set extension.use_dynamic_install=yes_without_prompt
+
+          az containerapp registry set --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.CONTAINER_APP_RESOURCE_GROUP_NAME }} --server ${{ env.CONTAINER_REGISTRY_LOGIN_SERVER }} --username ${{ secrets.WebApplication120230928120827_USERNAME_AD96 }} --password ${{ secrets.WebApplication120230928120827_PASSWORD_AD96 }}
+
+          az containerapp update --name ${{ env.CONTAINER_APP_NAME }} --container-name ${{ env.CONTAINER_APP_CONTAINER_NAME }} --resource-group ${{ env.CONTAINER_APP_RESOURCE_GROUP_NAME }} --image ${{ env.CONTAINER_REGISTRY_LOGIN_SERVER }}/blazorgitdemo.client:${{ github.sha }}
+    - name: Azure logout
+      run: az logout
+  BlazorGitDemo.Server_buildImageAndDeploy:
+    runs-on: ubuntu-latest
+    needs: BlazorGitDemo.Client_buildImageAndDeploy
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v3
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
+    - name: Login to Azure container registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.CONTAINER_REGISTRY_LOGIN_SERVER }}
+        username: ${{ secrets.WebApplication120230928120827_USERNAME_AD96 }}
+        password: ${{ secrets.WebApplication120230928120827_PASSWORD_AD96 }}
+    - name: Build and push image to Azure container registry
+      run: dotnet publish BlazorGitDemo/Server/BlazorGitDemo.Server.csproj -c Release -r linux-x64 -p:PublishProfile=DefaultContainer -p:ContainerImageTag=${{ github.sha }} --no-self-contained -p:ContainerRegistry=${{ env.CONTAINER_REGISTRY_LOGIN_SERVER }} -bl
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: binlog
+        path: msbuild.binlog
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.webapplication1_app_202309281205_SPN }}
+    - name: Deploy to Azure container app
+      uses: azure/CLI@v1
+      with:
+        inlineScript: >-
+          az config set extension.use_dynamic_install=yes_without_prompt
+
+          az containerapp registry set --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.CONTAINER_APP_RESOURCE_GROUP_NAME }} --server ${{ env.CONTAINER_REGISTRY_LOGIN_SERVER }} --username ${{ secrets.WebApplication120230928120827_USERNAME_AD96 }} --password ${{ secrets.WebApplication120230928120827_PASSWORD_AD96 }}
+
+          az containerapp update --name ${{ env.CONTAINER_APP_NAME }} --container-name ${{ env.CONTAINER_APP_CONTAINER_NAME }} --resource-group ${{ env.CONTAINER_APP_RESOURCE_GROUP_NAME }} --image ${{ env.CONTAINER_REGISTRY_LOGIN_SERVER }}/blazorgitdemo.server:${{ github.sha }}
+    - name: Azure logout
+      run: az logout
